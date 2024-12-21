@@ -66,12 +66,6 @@ void init_glcd(int bias, int vlcd) {
     glcd_init(&glcd_init_data);
 }
 
-void init_lcd() {
-    lcd_init(16);
-    lcd_clear();
-
-}
-
 void adjustSpeed(int speed) {
     OCR0 = 255 - speed;
 }

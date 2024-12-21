@@ -1,0 +1,867 @@
+;#include <io.h>
+;PCODE: $00000000 VOL: 0
+	#ifndef __SLEEP_DEFINED__
+;PCODE: $00000001 VOL: 0
+	#define __SLEEP_DEFINED__
+;PCODE: $00000002 VOL: 0
+	.EQU __se_bit=0x20
+;PCODE: $00000003 VOL: 0
+	.EQU __sm_mask=0x1C
+;PCODE: $00000004 VOL: 0
+	.EQU __sm_powerdown=0x10
+;PCODE: $00000005 VOL: 0
+	.EQU __sm_powersave=0x18
+;PCODE: $00000006 VOL: 0
+	.EQU __sm_standby=0x14
+;PCODE: $00000007 VOL: 0
+	.EQU __sm_ext_standby=0x1C
+;PCODE: $00000008 VOL: 0
+	.EQU __sm_adc_noise_red=0x08
+;PCODE: $00000009 VOL: 0
+	.SET power_ctrl_reg=mcucr
+;PCODE: $0000000A VOL: 0
+	#endif
+;PCODE: $0000000B VOL: 0
+;PCODE: $0000000C VOL: 0
+;#include <delay.h>
+;#include <glcd.h>
+;#include <font5x7.h>
+;#include <alcd.h>
+;#include <stdlib.h>
+;
+;#define PIN_DHT PINB.7
+;#define PORT_DHT PORTB.7
+;#define DDR_DHT DDRB.7
+;
+;// Bi?n toàn c?c
+;char x = 0;
+;unsigned char nhietdo = 0, doam = 0;
+;unsigned char nhietdo_naodo = 28, nhietdo_naodo2 = 30, doam_naodo = 53;
+;bool say_xong = false;
+;int counter = 0;
+;
+;int keypad[3][3] = { {1, 2, 3}, {4, 5, 6}, {7, 8, 9} };
+
+	.DSEG
+;char input_buffer[16]; // Lýu s? nh?p vào
+;int buffer_index = 0;  // V? trí hi?n t?i trong b? ð?m
+;int number = 0;
+;
+;int checksum = 0;
+;char number_str[6];
+;
+;// Interrupt c?a Timer1
+;interrupt [TIM1_OVF] void timer1_ovf_isr(void)
+; 0000 001D {
+
+	.CSEG
+;PCODE: $0000000D VOL: 0
+;PCODE: $0000000E VOL: 0
+; 0000 001E     TCNT1H = 0xE0C0 >> 8;
+;PCODE: $0000000F VOL: 0
+;PCODE: $00000010 VOL: 0
+; 0000 001F     TCNT1L = 0xE0C0 & 0xff;
+;PCODE: $00000011 VOL: 0
+;PCODE: $00000012 VOL: 0
+; 0000 0020 
+; 0000 0021     if (say_xong) {
+;PCODE: $00000013 VOL: 0
+;PCODE: $00000014 VOL: 0
+; 0000 0022         if (counter == 2000)
+;PCODE: $00000015 VOL: 0
+;PCODE: $00000016 VOL: 0
+;PCODE: $00000017 VOL: 0
+; 0000 0023             counter = 0;
+;PCODE: $00000018 VOL: 0
+; 0000 0024 
+; 0000 0025         if (counter == 0) {
+;PCODE: $00000019 VOL: 0
+;PCODE: $0000001A VOL: 0
+;PCODE: $0000001B VOL: 0
+; 0000 0026             PORTD.4 = 0;
+;PCODE: $0000001C VOL: 0
+;PCODE: $0000001D VOL: 0
+; 0000 0027             PORTD.5 = 1;
+;PCODE: $0000001E VOL: 0
+;PCODE: $0000001F VOL: 0
+; 0000 0028         }
+; 0000 0029 
+; 0000 002A         if (counter == 1000) {
+;PCODE: $00000020 VOL: 0
+;PCODE: $00000021 VOL: 0
+;PCODE: $00000022 VOL: 0
+;PCODE: $00000023 VOL: 0
+; 0000 002B             PORTD.5 = 0;
+;PCODE: $00000024 VOL: 0
+;PCODE: $00000025 VOL: 0
+; 0000 002C             PORTD.4 = 1;
+;PCODE: $00000026 VOL: 0
+;PCODE: $00000027 VOL: 0
+; 0000 002D         }
+; 0000 002E         counter++;
+;PCODE: $00000028 VOL: 0
+;PCODE: $00000029 VOL: 0
+;PCODE: $0000002A VOL: 0
+;PCODE: $0000002B VOL: 0
+; 0000 002F     }
+; 0000 0030 }
+;PCODE: $0000002C VOL: 0
+;PCODE: $0000002D VOL: 0
+;PCODE: $0000002E VOL: 0
+;PCODE: $0000002F VOL: 0
+;
+;// Hàm ð?c DHT11
+;char dht11(unsigned char *nhietdo, unsigned char *doam) {
+; 0000 0033 char dht11(unsigned char *nhietdo, unsigned char *doam) {
+;PCODE: $00000030 VOL: 0
+;PCODE: $00000031 VOL: 0
+; 0000 0034     int i, j;
+; 0000 0035     int buffer[5] = {0, 0, 0, 0, 0};
+; 0000 0036 
+; 0000 0037     DDR_DHT = 1;
+;PCODE: $00000032 VOL: 0
+;PCODE: $00000033 VOL: 0
+;PCODE: $00000034 VOL: 0
+;PCODE: $00000035 VOL: 0
+;PCODE: $00000036 VOL: 0
+;PCODE: $00000037 VOL: 0
+;PCODE: $00000038 VOL: 0
+;	*nhietdo -> Y+16
+;	*doam -> Y+14
+;	i -> R16,R17
+;	j -> R18,R19
+;	buffer -> Y+4
+;PCODE: $00000039 VOL: 0
+;PCODE: $0000003A VOL: 0
+; 0000 0038     PORT_DHT = 1;
+;PCODE: $0000003B VOL: 0
+;PCODE: $0000003C VOL: 0
+; 0000 0039     delay_us(60);
+;PCODE: $0000003D VOL: 0
+; 0000 003A     PORT_DHT = 0;
+;PCODE: $0000003E VOL: 0
+;PCODE: $0000003F VOL: 0
+; 0000 003B     delay_ms(25);
+;PCODE: $00000040 VOL: 0
+;PCODE: $00000041 VOL: 0
+;PCODE: $00000042 VOL: 0
+; 0000 003C     DDR_DHT = 0;
+;PCODE: $00000043 VOL: 0
+;PCODE: $00000044 VOL: 0
+; 0000 003D     PORT_DHT = 1;
+;PCODE: $00000045 VOL: 0
+;PCODE: $00000046 VOL: 0
+; 0000 003E 
+; 0000 003F     delay_us(60);
+;PCODE: $00000047 VOL: 0
+; 0000 0040     if (PIN_DHT) return 0;
+;PCODE: $00000048 VOL: 0
+;PCODE: $00000049 VOL: 0
+;PCODE: $0000004A VOL: 0
+;PCODE: $0000004B VOL: 0
+;PCODE: $0000004C VOL: 0
+;PCODE: $0000004D VOL: 0
+;PCODE: $0000004E VOL: 0
+; 0000 0041     else while (!(PIN_DHT));
+;PCODE: $0000004F VOL: 0
+;PCODE: $00000050 VOL: 0
+;PCODE: $00000051 VOL: 0
+;PCODE: $00000052 VOL: 0
+;PCODE: $00000053 VOL: 0
+;PCODE: $00000054 VOL: 0
+;PCODE: $00000055 VOL: 0
+;PCODE: $00000056 VOL: 0
+; 0000 0042     delay_us(60);
+;PCODE: $00000057 VOL: 0
+; 0000 0043     if (!PIN_DHT) return 0;
+;PCODE: $00000058 VOL: 0
+;PCODE: $00000059 VOL: 0
+;PCODE: $0000005A VOL: 0
+;PCODE: $0000005B VOL: 0
+;PCODE: $0000005C VOL: 0
+;PCODE: $0000005D VOL: 0
+;PCODE: $0000005E VOL: 0
+; 0000 0044     else while ((PIN_DHT));
+;PCODE: $0000005F VOL: 0
+;PCODE: $00000060 VOL: 0
+;PCODE: $00000061 VOL: 0
+;PCODE: $00000062 VOL: 0
+;PCODE: $00000063 VOL: 0
+;PCODE: $00000064 VOL: 0
+;PCODE: $00000065 VOL: 0
+;PCODE: $00000066 VOL: 0
+; 0000 0045 
+; 0000 0046     for (i = 0; i < 5; ++i) {
+;PCODE: $00000067 VOL: 0
+;PCODE: $00000068 VOL: 0
+;PCODE: $00000069 VOL: 0
+;PCODE: $0000006A VOL: 0
+;PCODE: $0000006B VOL: 0
+;PCODE: $0000006C VOL: 0
+;PCODE: $0000006D VOL: 0
+;PCODE: $0000006E VOL: 0
+;PCODE: $0000006F VOL: 0
+; 0000 0047         for (j = 0; j < 8; ++j) {
+;PCODE: $00000070 VOL: 0
+;PCODE: $00000071 VOL: 0
+;PCODE: $00000072 VOL: 0
+;PCODE: $00000073 VOL: 0
+;PCODE: $00000074 VOL: 0
+;PCODE: $00000075 VOL: 0
+;PCODE: $00000076 VOL: 0
+;PCODE: $00000077 VOL: 0
+;PCODE: $00000078 VOL: 0
+; 0000 0048             while (!(PIN_DHT));
+;PCODE: $00000079 VOL: 0
+;PCODE: $0000007A VOL: 0
+;PCODE: $0000007B VOL: 0
+;PCODE: $0000007C VOL: 0
+;PCODE: $0000007D VOL: 0
+;PCODE: $0000007E VOL: 0
+; 0000 0049             delay_us(50);
+;PCODE: $0000007F VOL: 0
+; 0000 004A             if (PIN_DHT) {
+;PCODE: $00000080 VOL: 0
+;PCODE: $00000081 VOL: 0
+;PCODE: $00000082 VOL: 0
+; 0000 004B                 buffer[i] |= (1 << (7 - j));
+;PCODE: $00000083 VOL: 0
+;PCODE: $00000084 VOL: 0
+;PCODE: $00000085 VOL: 0
+;PCODE: $00000086 VOL: 0
+;PCODE: $00000087 VOL: 0
+;PCODE: $00000088 VOL: 0
+;PCODE: $00000089 VOL: 0
+;PCODE: $0000008A VOL: 0
+;PCODE: $0000008B VOL: 0
+;PCODE: $0000008C VOL: 0
+;PCODE: $0000008D VOL: 0
+;PCODE: $0000008E VOL: 0
+;PCODE: $0000008F VOL: 0
+; 0000 004C                 while ((PIN_DHT));
+;PCODE: $00000090 VOL: 0
+;PCODE: $00000091 VOL: 0
+;PCODE: $00000092 VOL: 0
+;PCODE: $00000093 VOL: 0
+;PCODE: $00000094 VOL: 0
+;PCODE: $00000095 VOL: 0
+; 0000 004D             }
+; 0000 004E         }
+;PCODE: $00000096 VOL: 0
+;PCODE: $00000097 VOL: 0
+;PCODE: $00000098 VOL: 0
+;PCODE: $00000099 VOL: 0
+;PCODE: $0000009A VOL: 0
+;PCODE: $0000009B VOL: 0
+; 0000 004F     }
+;PCODE: $0000009C VOL: 0
+;PCODE: $0000009D VOL: 0
+;PCODE: $0000009E VOL: 0
+;PCODE: $0000009F VOL: 0
+;PCODE: $000000A0 VOL: 0
+; 0000 0050 
+; 0000 0051     checksum = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+;PCODE: $000000A1 VOL: 0
+;PCODE: $000000A2 VOL: 0
+;PCODE: $000000A3 VOL: 0
+;PCODE: $000000A4 VOL: 0
+;PCODE: $000000A5 VOL: 0
+;PCODE: $000000A6 VOL: 0
+;PCODE: $000000A7 VOL: 0
+;PCODE: $000000A8 VOL: 0
+; 0000 0052     if ((checksum) != buffer[4]) return 0;
+;PCODE: $000000A9 VOL: 0
+;PCODE: $000000AA VOL: 0
+;PCODE: $000000AB VOL: 0
+;PCODE: $000000AC VOL: 0
+;PCODE: $000000AD VOL: 0
+;PCODE: $000000AE VOL: 0
+;PCODE: $000000AF VOL: 0
+;PCODE: $000000B0 VOL: 0
+; 0000 0053 
+; 0000 0054     *nhietdo = buffer[2];
+;PCODE: $000000B1 VOL: 0
+;PCODE: $000000B2 VOL: 0
+;PCODE: $000000B3 VOL: 0
+;PCODE: $000000B4 VOL: 0
+; 0000 0055     *doam = buffer[0];
+;PCODE: $000000B5 VOL: 0
+;PCODE: $000000B6 VOL: 0
+;PCODE: $000000B7 VOL: 0
+; 0000 0056     return 1;
+;PCODE: $000000B8 VOL: 0
+;PCODE: $000000B9 VOL: 0
+;PCODE: $000000BA VOL: 0
+;PCODE: $000000BB VOL: 0
+; 0000 0057 }
+;PCODE: $000000BC VOL: 0
+;
+;// Hàm kh?i t?o các thanh ghi và ph?n c?ng
+;void init_register() {
+; 0000 005A void init_register() {
+;PCODE: $000000BD VOL: 0
+;PCODE: $000000BE VOL: 0
+; 0000 005B     DDRF = 0b11101010;
+;PCODE: $000000BF VOL: 0
+;PCODE: $000000C0 VOL: 0
+; 0000 005C     DDRD.4 = 1;
+;PCODE: $000000C1 VOL: 0
+;PCODE: $000000C2 VOL: 0
+; 0000 005D     DDRD.5 = 1;
+;PCODE: $000000C3 VOL: 0
+;PCODE: $000000C4 VOL: 0
+; 0000 005E     DDRD.7 = 1;
+;PCODE: $000000C5 VOL: 0
+;PCODE: $000000C6 VOL: 0
+; 0000 005F     DDRB.4 = 1;
+;PCODE: $000000C7 VOL: 0
+;PCODE: $000000C8 VOL: 0
+; 0000 0060     PORTB.2 = 1;
+;PCODE: $000000C9 VOL: 0
+;PCODE: $000000CA VOL: 0
+; 0000 0061     PORTB.3 = 1;
+;PCODE: $000000CB VOL: 0
+;PCODE: $000000CC VOL: 0
+; 0000 0062     PORTD.7 = 1;
+;PCODE: $000000CD VOL: 0
+;PCODE: $000000CE VOL: 0
+; 0000 0063     DDRC.7 = 1;
+;PCODE: $000000CF VOL: 0
+;PCODE: $000000D0 VOL: 0
+; 0000 0064 }
+;PCODE: $000000D1 VOL: 0
+;PCODE: $000000D2 VOL: 0
+;
+;// Hàm ði?u ch?nh t?c ð? ð?ng cõ
+;void adjustSpeed(int speed) {
+; 0000 0067 void adjustSpeed(int speed) {
+;PCODE: $000000D3 VOL: 0
+;PCODE: $000000D4 VOL: 0
+; 0000 0068     OCR0 = 255 - speed;
+;PCODE: $000000D5 VOL: 0
+;	speed -> Y+0
+;PCODE: $000000D6 VOL: 0
+;PCODE: $000000D7 VOL: 0
+;PCODE: $000000D8 VOL: 0
+;PCODE: $000000D9 VOL: 0
+; 0000 0069 }
+;PCODE: $000000DA VOL: 0
+;PCODE: $000000DB VOL: 0
+;PCODE: $000000DC VOL: 0
+;
+;// Kh?i t?o GLCD
+;void init_glcd(int bias, int vlcd) {
+; 0000 006C void init_glcd(int bias, int vlcd) {
+;PCODE: $000000DD VOL: 0
+;PCODE: $000000DE VOL: 0
+; 0000 006D     GLCDINIT_t glcd_init_data;
+; 0000 006E     glcd_init_data.font = font5x7;
+;PCODE: $000000DF VOL: 0
+;PCODE: $000000E0 VOL: 0
+;	bias -> Y+10
+;	vlcd -> Y+8
+;	glcd_init_data -> Y+0
+;PCODE: $000000E1 VOL: 0
+;PCODE: $000000E2 VOL: 0
+; 0000 006F     glcd_init_data.temp_coef = 140;
+;PCODE: $000000E3 VOL: 0
+;PCODE: $000000E4 VOL: 0
+;PCODE: $000000E5 VOL: 0
+;PCODE: $000000E6 VOL: 0
+; 0000 0070     glcd_init_data.bias = bias;
+;PCODE: $000000E7 VOL: 0
+;PCODE: $000000E8 VOL: 0
+;PCODE: $000000E9 VOL: 0
+;PCODE: $000000EA VOL: 0
+;PCODE: $000000EB VOL: 0
+;PCODE: $000000EC VOL: 0
+;PCODE: $000000ED VOL: 0
+;PCODE: $000000EE VOL: 0
+;PCODE: $000000EF VOL: 0
+; 0000 0071     glcd_init_data.vlcd = vlcd;
+;PCODE: $000000F0 VOL: 0
+;PCODE: $000000F1 VOL: 0
+;PCODE: $000000F2 VOL: 0
+;PCODE: $000000F3 VOL: 0
+;PCODE: $000000F4 VOL: 0
+;PCODE: $000000F5 VOL: 0
+;PCODE: $000000F6 VOL: 0
+;PCODE: $000000F7 VOL: 0
+; 0000 0072     glcd_init(&glcd_init_data);
+;PCODE: $000000F8 VOL: 0
+;PCODE: $000000F9 VOL: 0
+; 0000 0073 }
+;PCODE: $000000FA VOL: 0
+;PCODE: $000000FB VOL: 0
+;PCODE: $000000FC VOL: 0
+;
+;// Kh?i t?o Timer
+;void init_timer() {
+; 0000 0076 void init_timer() {
+;PCODE: $000000FD VOL: 0
+;PCODE: $000000FE VOL: 0
+; 0000 0077     ASSR = 0 << AS0;
+;PCODE: $000000FF VOL: 0
+;PCODE: $00000100 VOL: 0
+; 0000 0078     TCCR0 = (1 << WGM00) | (1 << COM01) | (1 << COM00) | (1 << CS02);
+;PCODE: $00000101 VOL: 0
+;PCODE: $00000102 VOL: 0
+; 0000 0079     TCNT0 = 0x00;
+;PCODE: $00000103 VOL: 0
+;PCODE: $00000104 VOL: 0
+; 0000 007A     adjustSpeed(0);
+;PCODE: $00000105 VOL: 0
+;PCODE: $00000106 VOL: 0
+;PCODE: $00000107 VOL: 0
+; 0000 007B 
+; 0000 007C     TCCR1A = 0;
+;PCODE: $00000108 VOL: 0
+;PCODE: $00000109 VOL: 0
+; 0000 007D     TCCR1B = (1 << CS10);
+;PCODE: $0000010A VOL: 0
+;PCODE: $0000010B VOL: 0
+; 0000 007E     TCNT1H = 0xFC;
+;PCODE: $0000010C VOL: 0
+;PCODE: $0000010D VOL: 0
+; 0000 007F     TCNT1L = 0xE0;
+;PCODE: $0000010E VOL: 0
+;PCODE: $0000010F VOL: 0
+; 0000 0080     TIMSK = (1 << TOIE1);
+;PCODE: $00000110 VOL: 0
+;PCODE: $00000111 VOL: 0
+; 0000 0081     ETIMSK = 0;
+;PCODE: $00000112 VOL: 0
+;PCODE: $00000113 VOL: 0
+; 0000 0082 #asm("sei")
+;PCODE: $00000114 VOL: 0
+	sei
+;PCODE: $00000115 VOL: 0
+; 0000 0083 }
+;PCODE: $00000116 VOL: 0
+;PCODE: $00000117 VOL: 0
+;
+;// Hàm hi?n th? nhi?t ð? và ð? ?m trên GLCD
+;void hien_thi_glcd() {
+; 0000 0086 void hien_thi_glcd() {
+;PCODE: $00000118 VOL: 0
+;PCODE: $00000119 VOL: 0
+; 0000 0087     x = dht11(&nhietdo, &doam);
+;PCODE: $0000011A VOL: 0
+;PCODE: $0000011B VOL: 0
+;PCODE: $0000011C VOL: 0
+;PCODE: $0000011D VOL: 0
+;PCODE: $0000011E VOL: 0
+; 0000 0088 
+; 0000 0089     // Hi?n th? nhi?t ð?
+; 0000 008A     glcd_clear();  // Xóa màn h?nh GLCD trý?c khi hi?n th?
+;PCODE: $0000011F VOL: 0
+; 0000 008B     glcd_outtextxy(0, 0, "TEMP:");  // Hi?n th? nh?n "TEMP"
+;PCODE: $00000120 VOL: 0
+;PCODE: $00000121 VOL: 0
+;PCODE: $00000122 VOL: 0
+;PCODE: $00000123 VOL: 0
+;PCODE: $00000124 VOL: 0
+;PCODE: $00000125 VOL: 0
+;PCODE: $00000126 VOL: 0
+; 0000 008C     glcd_putchar(48 + nhietdo / 10);  // Hi?n th? ch? s? ð?u tiên c?a nhi?t ð?
+;PCODE: $00000127 VOL: 0
+;PCODE: $00000128 VOL: 0
+;PCODE: $00000129 VOL: 0
+;PCODE: $0000012A VOL: 0
+;PCODE: $0000012B VOL: 0
+;PCODE: $0000012C VOL: 0
+;PCODE: $0000012D VOL: 0
+; 0000 008D     glcd_putchar(48 + nhietdo % 10);  // Hi?n th? ch? s? th? hai c?a nhi?t ð?
+;PCODE: $0000012E VOL: 0
+;PCODE: $0000012F VOL: 0
+;PCODE: $00000130 VOL: 0
+;PCODE: $00000131 VOL: 0
+;PCODE: $00000132 VOL: 0
+;PCODE: $00000133 VOL: 0
+;PCODE: $00000134 VOL: 0
+; 0000 008E 
+; 0000 008F     // Hi?n th? ð? ?m
+; 0000 0090     glcd_outtextxy(0, 10, "HUMI:");  // Hi?n th? nh?n "HUMI"
+;PCODE: $00000135 VOL: 0
+;PCODE: $00000136 VOL: 0
+;PCODE: $00000137 VOL: 0
+;PCODE: $00000138 VOL: 0
+;PCODE: $00000139 VOL: 0
+;PCODE: $0000013A VOL: 0
+;PCODE: $0000013B VOL: 0
+; 0000 0091     glcd_putchar(48 + doam / 10);  // Hi?n th? ch? s? ð?u tiên c?a ð? ?m
+;PCODE: $0000013C VOL: 0
+;PCODE: $0000013D VOL: 0
+;PCODE: $0000013E VOL: 0
+;PCODE: $0000013F VOL: 0
+;PCODE: $00000140 VOL: 0
+;PCODE: $00000141 VOL: 0
+;PCODE: $00000142 VOL: 0
+; 0000 0092     glcd_putchar(48 + doam % 10);  // Hi?n th? ch? s? th? hai c?a ð? ?m
+;PCODE: $00000143 VOL: 0
+;PCODE: $00000144 VOL: 0
+;PCODE: $00000145 VOL: 0
+;PCODE: $00000146 VOL: 0
+;PCODE: $00000147 VOL: 0
+;PCODE: $00000148 VOL: 0
+;PCODE: $00000149 VOL: 0
+; 0000 0093 }
+;PCODE: $0000014A VOL: 0
+;PCODE: $0000014B VOL: 0
+
+	.DSEG
+_0x43:
+	.BYTE 0xC
+;
+;// Hàm x? l? bàn phím ma tr?n
+;void BUTTON() {
+; 0000 0096 void BUTTON() {
+
+	.CSEG
+;PCODE: $0000014C VOL: 0
+;PCODE: $0000014D VOL: 0
+; 0000 0097     char a;
+; 0000 0098     int i, j;
+; 0000 0099     for (j = 0; j < 3; j++) {
+;PCODE: $0000014E VOL: 0
+;	a -> R17
+;	i -> R18,R19
+;	j -> R20,R21
+;PCODE: $0000014F VOL: 0
+;PCODE: $00000150 VOL: 0
+;PCODE: $00000151 VOL: 0
+;PCODE: $00000152 VOL: 0
+;PCODE: $00000153 VOL: 0
+;PCODE: $00000154 VOL: 0
+;PCODE: $00000155 VOL: 0
+;PCODE: $00000156 VOL: 0
+;PCODE: $00000157 VOL: 0
+; 0000 009A         // Kích ho?t t?ng hàng c?a bàn phím
+; 0000 009B         if (j == 0) PORTF = 0b11111101;
+;PCODE: $00000158 VOL: 0
+;PCODE: $00000159 VOL: 0
+;PCODE: $0000015A VOL: 0
+;PCODE: $0000015B VOL: 0
+; 0000 009C         if (j == 1) PORTF = 0b11110111;
+;PCODE: $0000015C VOL: 0
+;PCODE: $0000015D VOL: 0
+;PCODE: $0000015E VOL: 0
+;PCODE: $0000015F VOL: 0
+;PCODE: $00000160 VOL: 0
+;PCODE: $00000161 VOL: 0
+; 0000 009D         if (j == 2) PORTF = 0b11011111;
+;PCODE: $00000162 VOL: 0
+;PCODE: $00000163 VOL: 0
+;PCODE: $00000164 VOL: 0
+;PCODE: $00000165 VOL: 0
+;PCODE: $00000166 VOL: 0
+;PCODE: $00000167 VOL: 0
+; 0000 009E 
+; 0000 009F         for (i = 0; i < 3; i++) {
+;PCODE: $00000168 VOL: 0
+;PCODE: $00000169 VOL: 0
+;PCODE: $0000016A VOL: 0
+;PCODE: $0000016B VOL: 0
+;PCODE: $0000016C VOL: 0
+;PCODE: $0000016D VOL: 0
+;PCODE: $0000016E VOL: 0
+;PCODE: $0000016F VOL: 0
+;PCODE: $00000170 VOL: 0
+;PCODE: $00000171 VOL: 0
+; 0000 00A0             // Ki?m tra t?ng c?t
+; 0000 00A1             if (i == 0) {
+;PCODE: $00000172 VOL: 0
+;PCODE: $00000173 VOL: 0
+; 0000 00A2                 a = PINF & 0x04;
+;PCODE: $00000174 VOL: 0
+;PCODE: $00000175 VOL: 0
+;PCODE: $00000176 VOL: 0
+; 0000 00A3                 if (a != 0x04) {
+;PCODE: $00000177 VOL: 0
+;PCODE: $00000178 VOL: 0
+;PCODE: $00000179 VOL: 0
+; 0000 00A4                     input_buffer[buffer_index++] = keypad[j][i] + '0'; // Chuy?n s? sang k? t? ð? lýu vào b? ð?m
+;PCODE: $0000017A VOL: 0
+;PCODE: $0000017B VOL: 0
+;PCODE: $0000017C VOL: 0
+;PCODE: $0000017D VOL: 0
+;PCODE: $0000017E VOL: 0
+;PCODE: $0000017F VOL: 0
+;PCODE: $00000180 VOL: 0
+;PCODE: $00000181 VOL: 0
+;PCODE: $00000182 VOL: 0
+;PCODE: $00000183 VOL: 0
+;PCODE: $00000184 VOL: 0
+;PCODE: $00000185 VOL: 0
+;PCODE: $00000186 VOL: 0
+;PCODE: $00000187 VOL: 0
+;PCODE: $00000188 VOL: 0
+;PCODE: $00000189 VOL: 0
+;PCODE: $0000018A VOL: 0
+;PCODE: $0000018B VOL: 0
+; 0000 00A5                 }
+; 0000 00A6             }
+;PCODE: $0000018C VOL: 0
+; 0000 00A7             if (i == 1) {
+;PCODE: $0000018D VOL: 0
+;PCODE: $0000018E VOL: 0
+;PCODE: $0000018F VOL: 0
+;PCODE: $00000190 VOL: 0
+; 0000 00A8                 delay_ms(50);
+;PCODE: $00000191 VOL: 0
+;PCODE: $00000192 VOL: 0
+;PCODE: $00000193 VOL: 0
+; 0000 00A9                 a = PINF & 0x10;
+;PCODE: $00000194 VOL: 0
+;PCODE: $00000195 VOL: 0
+;PCODE: $00000196 VOL: 0
+; 0000 00AA                 if (a != 0x10) {
+;PCODE: $00000197 VOL: 0
+;PCODE: $00000198 VOL: 0
+;PCODE: $00000199 VOL: 0
+; 0000 00AB                     input_buffer[buffer_index++] = keypad[j][i] + '0';
+;PCODE: $0000019A VOL: 0
+;PCODE: $0000019B VOL: 0
+;PCODE: $0000019C VOL: 0
+;PCODE: $0000019D VOL: 0
+;PCODE: $0000019E VOL: 0
+;PCODE: $0000019F VOL: 0
+;PCODE: $000001A0 VOL: 0
+;PCODE: $000001A1 VOL: 0
+;PCODE: $000001A2 VOL: 0
+;PCODE: $000001A3 VOL: 0
+;PCODE: $000001A4 VOL: 0
+;PCODE: $000001A5 VOL: 0
+;PCODE: $000001A6 VOL: 0
+;PCODE: $000001A7 VOL: 0
+;PCODE: $000001A8 VOL: 0
+;PCODE: $000001A9 VOL: 0
+;PCODE: $000001AA VOL: 0
+;PCODE: $000001AB VOL: 0
+; 0000 00AC                 }
+; 0000 00AD             }
+;PCODE: $000001AC VOL: 0
+; 0000 00AE             if (i == 2) {
+;PCODE: $000001AD VOL: 0
+;PCODE: $000001AE VOL: 0
+;PCODE: $000001AF VOL: 0
+;PCODE: $000001B0 VOL: 0
+; 0000 00AF                 delay_ms(50);
+;PCODE: $000001B1 VOL: 0
+;PCODE: $000001B2 VOL: 0
+;PCODE: $000001B3 VOL: 0
+; 0000 00B0                 a = PINF & 0x01;
+;PCODE: $000001B4 VOL: 0
+;PCODE: $000001B5 VOL: 0
+;PCODE: $000001B6 VOL: 0
+; 0000 00B1                 if (a != 0x01) {
+;PCODE: $000001B7 VOL: 0
+;PCODE: $000001B8 VOL: 0
+;PCODE: $000001B9 VOL: 0
+; 0000 00B2                     input_buffer[buffer_index++] = keypad[j][i] + '0';
+;PCODE: $000001BA VOL: 0
+;PCODE: $000001BB VOL: 0
+;PCODE: $000001BC VOL: 0
+;PCODE: $000001BD VOL: 0
+;PCODE: $000001BE VOL: 0
+;PCODE: $000001BF VOL: 0
+;PCODE: $000001C0 VOL: 0
+;PCODE: $000001C1 VOL: 0
+;PCODE: $000001C2 VOL: 0
+;PCODE: $000001C3 VOL: 0
+;PCODE: $000001C4 VOL: 0
+;PCODE: $000001C5 VOL: 0
+;PCODE: $000001C6 VOL: 0
+;PCODE: $000001C7 VOL: 0
+;PCODE: $000001C8 VOL: 0
+;PCODE: $000001C9 VOL: 0
+;PCODE: $000001CA VOL: 0
+;PCODE: $000001CB VOL: 0
+; 0000 00B3                 }
+; 0000 00B4             }
+;PCODE: $000001CC VOL: 0
+; 0000 00B5         }
+;PCODE: $000001CD VOL: 0
+;PCODE: $000001CE VOL: 0
+;PCODE: $000001CF VOL: 0
+;PCODE: $000001D0 VOL: 0
+;PCODE: $000001D1 VOL: 0
+;PCODE: $000001D2 VOL: 0
+; 0000 00B6     }
+;PCODE: $000001D3 VOL: 0
+;PCODE: $000001D4 VOL: 0
+;PCODE: $000001D5 VOL: 0
+;PCODE: $000001D6 VOL: 0
+;PCODE: $000001D7 VOL: 0
+; 0000 00B7 }
+;PCODE: $000001D8 VOL: 0
+;PCODE: $000001D9 VOL: 0
+;PCODE: $000001DA VOL: 0
+;PCODE: $000001DB VOL: 0
+;
+;// Hàm chính
+;void main(void) {
+; 0000 00BA void main(void) {
+;PCODE: $000001DC VOL: 0
+; 0000 00BB     init_glcd(4, 66);  // Kh?i t?o GLCD
+;PCODE: $000001DD VOL: 0
+;PCODE: $000001DE VOL: 0
+;PCODE: $000001DF VOL: 0
+;PCODE: $000001E0 VOL: 0
+;PCODE: $000001E1 VOL: 0
+; 0000 00BC     init_register();   // Kh?i t?o các thanh ghi và ph?n c?ng
+;PCODE: $000001E2 VOL: 0
+; 0000 00BD     init_timer();      // Kh?i t?o Timer
+;PCODE: $000001E3 VOL: 0
+; 0000 00BE 
+; 0000 00BF     while (1) {
+;PCODE: $000001E4 VOL: 0
+; 0000 00C0         BUTTON();  // Ki?m tra bàn phím ma tr?n
+;PCODE: $000001E5 VOL: 0
+; 0000 00C1         delay_ms(250);
+;PCODE: $000001E6 VOL: 0
+;PCODE: $000001E7 VOL: 0
+;PCODE: $000001E8 VOL: 0
+; 0000 00C2 
+; 0000 00C3         if (!(PINB & (1 << PINB2))) {  // Button 1 ðý?c nh?n
+;PCODE: $000001E9 VOL: 0
+;PCODE: $000001EA VOL: 0
+;PCODE: $000001EB VOL: 0
+; 0000 00C4             // Nh?p giá tr? nhi?t ð? và ð? ?m t? bàn phím
+; 0000 00C5             if (PINB.2 == 0) // N?u button 1 ðý?c nh?n
+;PCODE: $000001EC VOL: 0
+;PCODE: $000001ED VOL: 0
+;PCODE: $000001EE VOL: 0
+; 0000 00C6             {
+; 0000 00C7                 // break
+; 0000 00C8             }
+; 0000 00C9             glcd_clear();
+;PCODE: $000001EF VOL: 0
+;PCODE: $000001F0 VOL: 0
+; 0000 00CA             glcd_outtextxy(0, 0, "Enter Temp: ");
+;PCODE: $000001F1 VOL: 0
+;PCODE: $000001F2 VOL: 0
+;PCODE: $000001F3 VOL: 0
+;PCODE: $000001F4 VOL: 0
+;PCODE: $000001F5 VOL: 0
+;PCODE: $000001F6 VOL: 0
+;PCODE: $000001F7 VOL: 0
+; 0000 00CB             // Ð?c giá tr? t? bàn phím và chuy?n vào `input_buffer`
+; 0000 00CC             while (buffer_index < 4) {  // Ch? cho phép nh?p t?i ða 2 ch? s?
+;PCODE: $000001F8 VOL: 0
+;PCODE: $000001F9 VOL: 0
+;PCODE: $000001FA VOL: 0
+;PCODE: $000001FB VOL: 0
+; 0000 00CD                 // N?u ð? 4 ch? s?, nh?p vào buffer
+; 0000 00CE             }
+;PCODE: $000001FC VOL: 0
+;PCODE: $000001FD VOL: 0
+; 0000 00CF             nhietdo = atoi(input_buffer);  // Chuy?n chu?i thành s?
+;PCODE: $000001FE VOL: 0
+;PCODE: $000001FF VOL: 0
+;PCODE: $00000200 VOL: 0
+; 0000 00D0             glcd_outtextxy(0, 10, "Enter Humidity: ");
+;PCODE: $00000201 VOL: 0
+;PCODE: $00000202 VOL: 0
+;PCODE: $00000203 VOL: 0
+;PCODE: $00000204 VOL: 0
+;PCODE: $00000205 VOL: 0
+;PCODE: $00000206 VOL: 0
+;PCODE: $00000207 VOL: 0
+; 0000 00D1             buffer_index = 0;  // Reset b? ð?m
+;PCODE: $00000208 VOL: 0
+;PCODE: $00000209 VOL: 0
+; 0000 00D2             while (buffer_index < 4) {
+;PCODE: $0000020A VOL: 0
+;PCODE: $0000020B VOL: 0
+;PCODE: $0000020C VOL: 0
+;PCODE: $0000020D VOL: 0
+; 0000 00D3                 // Nh?p ð? ?m
+; 0000 00D4             }
+;PCODE: $0000020E VOL: 0
+;PCODE: $0000020F VOL: 0
+; 0000 00D5             doam = atoi(input_buffer);  // Chuy?n chu?i thành s?
+;PCODE: $00000210 VOL: 0
+;PCODE: $00000211 VOL: 0
+;PCODE: $00000212 VOL: 0
+; 0000 00D6         }
+; 0000 00D7 
+; 0000 00D8         if (!(PINB & (1 << PINB3))) {  // Button 2 ðý?c nh?n
+;PCODE: $00000213 VOL: 0
+;PCODE: $00000214 VOL: 0
+;PCODE: $00000215 VOL: 0
+;PCODE: $00000216 VOL: 0
+; 0000 00D9             hien_thi_glcd();
+;PCODE: $00000217 VOL: 0
+; 0000 00DA             // Hi?n th? nhi?t ð? và ð? ?m t? DHT11
+; 0000 00DB             if (nhietdo == nhietdo_naodo && doam == doam_naodo)
+;PCODE: $00000218 VOL: 0
+;PCODE: $00000219 VOL: 0
+;PCODE: $0000021A VOL: 0
+;PCODE: $0000021B VOL: 0
+;PCODE: $0000021C VOL: 0
+;PCODE: $0000021D VOL: 0
+;PCODE: $0000021E VOL: 0
+;PCODE: $0000021F VOL: 0
+;PCODE: $00000220 VOL: 0
+;PCODE: $00000221 VOL: 0
+; 0000 00DC                 adjustSpeed(255);
+;PCODE: $00000222 VOL: 0
+;PCODE: $00000223 VOL: 0
+;PCODE: $00000224 VOL: 0
+; 0000 00DD             // OCR0 = 0 tuong duong speed 255 (nghia la dang say kho)
+; 0000 00DE             if (OCR0 == 0 && nhietdo == nhietdo_naodo2) {
+;PCODE: $00000225 VOL: 0
+;PCODE: $00000226 VOL: 0
+;PCODE: $00000227 VOL: 0
+;PCODE: $00000228 VOL: 0
+;PCODE: $00000229 VOL: 0
+;PCODE: $0000022A VOL: 0
+;PCODE: $0000022B VOL: 0
+;PCODE: $0000022C VOL: 0
+;PCODE: $0000022D VOL: 0
+;PCODE: $0000022E VOL: 0
+;PCODE: $0000022F VOL: 0
+; 0000 00DF                 adjustSpeed(0);
+;PCODE: $00000230 VOL: 0
+;PCODE: $00000231 VOL: 0
+;PCODE: $00000232 VOL: 0
+; 0000 00E0                 glcd_outtextxy(20, 20, "SAY XONG!");
+;PCODE: $00000233 VOL: 0
+;PCODE: $00000234 VOL: 0
+;PCODE: $00000235 VOL: 0
+;PCODE: $00000236 VOL: 0
+;PCODE: $00000237 VOL: 0
+;PCODE: $00000238 VOL: 0
+;PCODE: $00000239 VOL: 0
+; 0000 00E1                 say_xong = true;
+;PCODE: $0000023A VOL: 0
+;PCODE: $0000023B VOL: 0
+; 0000 00E2                 while(1){};
+;PCODE: $0000023C VOL: 0
+;PCODE: $0000023D VOL: 0
+;PCODE: $0000023E VOL: 0
+; 0000 00E3             }
+; 0000 00E4             delay_ms(250);
+;PCODE: $0000023F VOL: 0
+;PCODE: $00000240 VOL: 0
+;PCODE: $00000241 VOL: 0
+;PCODE: $00000242 VOL: 0
+; 0000 00E5         }
+; 0000 00E6 
+; 0000 00E7         delay_ms(250);
+;PCODE: $00000243 VOL: 0
+;PCODE: $00000244 VOL: 0
+;PCODE: $00000245 VOL: 0
+;PCODE: $00000246 VOL: 0
+; 0000 00E8     }
+;PCODE: $00000247 VOL: 0
+;PCODE: $00000248 VOL: 0
+; 0000 00E9 }
+;PCODE: $00000249 VOL: 0
+;PCODE: $0000024A VOL: 0
+;PCODE: $0000024B VOL: 0
+
+	.DSEG
+_0x58:
+	.BYTE 0x28

@@ -718,7 +718,7 @@
 ;PCODE: $000001DD VOL: 0
 ;PCODE: $000001DE VOL: 0
 ;
-;void main(void)
+; void main(void)
 ; 0000 0039 {
 ;PCODE: $000001DF VOL: 0
 ; 0000 003A     init_glcd(4, 66);
