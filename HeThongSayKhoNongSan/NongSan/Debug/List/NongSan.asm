@@ -1869,7 +1869,7 @@ _hien_thi:
 	RET
 ; .FEND
 ;
-;void main(void)
+; void main(void)
 ; 0000 0039 {
 _main:
 ; .FSTART _main

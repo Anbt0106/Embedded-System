@@ -53,7 +53,7 @@ void hien_thi() {
     lcd_putchar(doam % 10 + 48);
 }
 
-void main(void)
+ void main(void)
 {
     init_glcd(4, 66);
     init_lcd();
@@ -87,4 +87,4 @@ void main(void)
         }
         delay_ms(250);
     }
-}
+}    
