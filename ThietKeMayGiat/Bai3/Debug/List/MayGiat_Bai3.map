@@ -1,0 +1,69 @@
+RAM Allocation [bytes]
+Variable                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+glcd_state                                                                        0x0552      29
+displayText                                                                       0x056F      32
+gfx_addr                                                                          0x058F       2
+gfx_buffer                                                                        0x0591     504
+_base_y                                                                           0x0789       4
+_seed                                                                             0x078D       4
+
+EEPROM Allocation [bytes]
+Variable                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+
+Register Allocation
+Variable                                                                          Register  Size
+------------------------------------------------------------------------------------------------
+curSpeed                                                                          R4,R5        2
+_lcd_x                                                                            R7           1
+_lcd_y                                                                            R6           1
+_lcd_maxx                                                                         R9           1
+
+FLASH Allocation [words]
+Function                                                                          Address   Size
+------------------------------------------------------------------------------------------------
+adjustSpeed                                                                       0x001D3      5
+updateSpeedText                                                                   0x001D8     44
+displayHighSpeed                                                                  0x00204     15
+vat                                                                               0x00213     32
+giat                                                                              0x00233     52
+main                                                                              0x00267     83
+pcd8544_delay_G100                                                                0x002BA      1
+pcd8544_wrbus_G100                                                                0x002BB     45
+pcd8544_wrcmd                                                                     0x002E8      9
+pcd8544_wrdata_G100                                                               0x002F1      9
+pcd8544_setaddr_G100                                                              0x002FA     23
+pcd8544_gotoxy                                                                    0x00311     13
+pcd8544_rdbyte                                                                    0x0031E     14
+pcd8544_wrbyte                                                                    0x0032C      7
+glcd_init                                                                         0x00333    156
+glcd_display                                                                      0x003CF     11
+glcd_clear                                                                        0x003DA     30
+pcd8544_wrmasked_G100                                                             0x003F8     57
+glcd_block                                                                        0x00431    481
+glcd_clipx                                                                        0x00612     21
+glcd_clipy                                                                        0x00627     19
+glcd_getcharw_G101                                                                0x0063A    111
+glcd_new_line_G101                                                                0x006A9     20
+glcd_putchar                                                                      0x006BD     98
+glcd_outtextxy                                                                    0x0071F     16
+glcd_moveto                                                                       0x0072F     13
+put_buff_G103                                                                     0x0073C     64
+_print_G103                                                                       0x0077C    308
+sprintf                                                                           0x008B0     52
+_lcd_write_nibble_G104                                                            0x008E4     37
+_lcd_write_data                                                                   0x00909     12
+lcd_gotoxy                                                                        0x00915     13
+lcd_clear                                                                         0x00922     12
+lcd_putchar                                                                       0x0092E     21
+lcd_puts                                                                          0x00943     12
+lcd_putsf                                                                         0x0094F     19
+lcd_init                                                                          0x00962     47
+memset                                                                            0x00991     16
+strlen                                                                            0x009A1     12
+strlenf                                                                           0x009AD     13
+glcd_getmask                                                                      0x009BA     11
+glcd_mappixcolor1bit                                                              0x009C5     40
+glcd_readmem                                                                      0x009ED     31
+glcd_writemem                                                                     0x00A0C     31
