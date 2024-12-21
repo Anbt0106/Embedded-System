@@ -41,7 +41,7 @@
 
 ## 5. Hệ Thống Khóa Mã Phím
 - **Chức Năng**:
-    - Mật khẩu mặc định: `666`.
+    - Mật khẩu mặc định: `108`.
     - Nhập sai mật khẩu 3 lần:
         - Bật rơ-le 1.
         - Đèn LED nháy luân phiên xanh-đỏ với chu kỳ 1 giây.
